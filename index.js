@@ -14,7 +14,6 @@ async function viewDepartments() {
     console.log('Viewing all departments');
     const response = await db.promise().query('SELECT * FROM department') 
     console.table(response[0]);
-    console.log('\n');
     init();
 };
 
@@ -22,16 +21,16 @@ async function viewRoles() {
     console.log('Viewing all roles');
     const response = await db.promise().query('SELECT * FROM role')
     console.table(response[0]);
-    console.log('\n');
     init();
-}
+};
+
 async function viewEmployees() {
     console.log('Viewing all employees');
     const response = await db.promise().query('SELECT * FROM employee')
     console.table(response[0]);
-    console.log('\n');
     init();
-}
+};
+
 async function addDepartment() {
     console.log('You may now add a department');
     const prompt = await inquirer.prompt([
@@ -42,9 +41,9 @@ async function addDepartment() {
         }
     ])
     if (prompt) {
-        const results = db.promise().query('INSERT INTO department (department_name) VALUES (?)', prompt.addDepartment);
+        const response = db.promise().query('INSERT INTO department (department_name) VALUES (?)', prompt.addDepartment);
         console.log('Department successfully added!');
-        console.table(results);
+        console.table(response);
     }
     init();
 };
@@ -73,12 +72,13 @@ async function addRole() {
         }
     ])
     if (prompt) {
-        const results = db.promise().query(`INSERT INTO role (title, salary, department_id) VALUES ('${prompt.addRole}', '${prompt.addedSalary}', '${prompt.department}')`);
+        const response = db.promise().query(`INSERT INTO role (title, salary, department_id) VALUES ('${prompt.addRole}', '${prompt.addedSalary}', '${prompt.department}')`);
         console.log('Role successfully added!');
-        console.table(results);
+        console.table(response);
     }
     init();
-}
+};
+
 async function addEmployee() {
     console.log('You may now add an employee');
     const departments = await db.promise().query("SELECT * FROM department;");
@@ -105,24 +105,51 @@ async function addEmployee() {
         {
             type: 'list',
             name: 'role',
-            message: 'What role does this employee belong have?',
+            message: 'What role does this employee have?',
             choices: roleArray,
+        },
+        {
+            type: 'input',
+            name: 'managerId',
+            message: "What is id of this employee's manager?",
         }
-
     ])
     if (prompt) {
-        const results = db.promise().query(`INSERT INTO employee (first_name, last_name, role_id) VALUES ('${prompt.addEmployeeFirst}', '${prompt.addEmployeeLast}', '${prompt.role}')`);
+        const response = db.promise().query(`INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ('${prompt.addEmployeeFirst}', '${prompt.addEmployeeLast}', '${prompt.role}', '${prompt.managerId}')`);
         console.log('Employee successfully added!');
-        console.table(results);
+        console.table(response);
     }
     init();
-}
+};
+
 async function updateRole() {
-    console.log('You may now update a role');
-}
-async function end() {
-    console.log('end');
-}
+    console.log("You may now update an employee's role");
+    const employee = await db.promise().query("SELECT * FROM employee");
+    const employeeArray = employee[0].map(({ employee_id, first_name }) => ({ name:  first_name, value: employee_id }));
+    console.log(employeeArray);
+    const roles = await db.promise().query('SELECT * FROM role;');
+    const roleArray = roles[0].map(({ role_id, title }) => ({ name: title, value: role_id}));
+    const prompt = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'chooseEmployee',
+            message: "Which employee's role would you like to update?",
+            choices: employeeArray,
+        },
+        {
+            type: 'list',
+            name: 'updateRole',
+            message: 'What would you like to change their role too?',
+            choices: roleArray,
+        },
+    ])
+    if (prompt) {
+        const response = db.promise().query(`UPDATE employee SET role_id = ${prompt.updateRole} WHERE employee_id = ${prompt.chooseEmployee};`);
+        console.log('Employee role successfully updated!');
+        console.table(response);
+    }
+    init();
+};
 
 function init() {
     inquirer.prompt ([
@@ -130,7 +157,7 @@ function init() {
             type: 'list',
             name: 'choices',
             message: 'What would you like to do?',
-            choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role', 'End'],
+            choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role'],
         }
     ])
     .then((response) => {
